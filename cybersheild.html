@@ -1,0 +1,973 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CyberShield — URL Safety Analyzer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:       #080b12;
+  --bg2:      #0d1220;
+  --bg3:      #111827;
+  --border:   rgba(99,179,237,0.12);
+  --border2:  rgba(99,179,237,0.25);
+  --accent:   #63b3ed;
+  --accent2:  #38bdf8;
+  --green:    #34d399;
+  --yellow:   #fbbf24;
+  --red:      #f87171;
+  --purple:   #a78bfa;
+  --text:     #e2e8f0;
+  --text2:    #94a3b8;
+  --text3:    #475569;
+  --glow:     rgba(99,179,237,0.15);
+  --glow2:    rgba(99,179,237,0.06);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  cursor: none;
+}
+
+/* ── Custom cursor ── */
+.cursor {
+  position: fixed; width: 10px; height: 10px;
+  background: var(--accent); border-radius: 50%;
+  pointer-events: none; z-index: 9999;
+  transform: translate(-50%,-50%);
+  transition: transform 0.1s, opacity 0.2s;
+  mix-blend-mode: screen;
+}
+.cursor-ring {
+  position: fixed; width: 32px; height: 32px;
+  border: 1px solid rgba(99,179,237,0.5);
+  border-radius: 50%; pointer-events: none; z-index: 9998;
+  transform: translate(-50%,-50%);
+  transition: all 0.15s ease;
+}
+
+/* ── Grid bg ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(99,179,237,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99,179,237,0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none; z-index: 0;
+}
+
+/* ── Noise overlay ── */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 0; opacity: 0.4;
+}
+
+/* ── Layout ── */
+.wrap { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 0 24px; }
+
+/* ── Nav ── */
+nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 22px 0; border-bottom: 1px solid var(--border);
+  animation: fadeDown 0.6s ease both;
+}
+.nav-logo {
+  display: flex; align-items: center; gap: 10px;
+  font-family: 'Space Mono', monospace; font-size: 15px;
+  font-weight: 700; color: var(--accent); letter-spacing: 0.05em;
+}
+.logo-shield {
+  width: 32px; height: 32px;
+  border: 2px solid var(--accent);
+  border-radius: 4px; display: flex;
+  align-items: center; justify-content: center;
+  font-size: 14px;
+  box-shadow: 0 0 12px var(--glow);
+}
+.nav-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--text3);
+  border: 1px solid var(--border);
+  padding: 3px 10px; border-radius: 20px;
+}
+
+/* ── Hero ── */
+.hero { padding: 72px 0 40px; text-align: center; }
+
+.hero-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--accent);
+  letter-spacing: 0.2em; text-transform: uppercase;
+  margin-bottom: 20px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  animation: fadeUp 0.5s ease 0.1s both;
+}
+.hero-eyebrow::before, .hero-eyebrow::after {
+  content: ''; flex: 1; max-width: 60px;
+  height: 1px; background: linear-gradient(90deg, transparent, var(--accent));
+}
+.hero-eyebrow::after { transform: scaleX(-1); }
+
+.hero h1 {
+  font-size: clamp(40px, 8vw, 72px);
+  font-weight: 800; line-height: 1.05;
+  letter-spacing: -0.02em;
+  animation: fadeUp 0.5s ease 0.2s both;
+}
+.hero h1 span {
+  background: linear-gradient(135deg, var(--accent2) 0%, var(--purple) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-sub {
+  font-size: 15px; color: var(--text2); max-width: 480px;
+  margin: 18px auto 0; line-height: 1.7;
+  animation: fadeUp 0.5s ease 0.3s both;
+}
+
+/* ── Stats row ── */
+.stats {
+  display: flex; justify-content: center; gap: 40px;
+  margin: 40px 0; flex-wrap: wrap;
+  animation: fadeUp 0.5s ease 0.35s both;
+}
+.stat { text-align: center; }
+.stat-num {
+  font-family: 'Space Mono', monospace;
+  font-size: 24px; font-weight: 700; color: var(--accent);
+  display: block;
+}
+.stat-label { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+/* ── Input card ── */
+.input-card {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 0 60px var(--glow2), inset 0 1px 0 rgba(255,255,255,0.04);
+  animation: fadeUp 0.5s ease 0.4s both;
+  position: relative; overflow: hidden;
+}
+.input-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+
+.input-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--text3);
+  letter-spacing: 0.15em; text-transform: uppercase;
+  margin-bottom: 10px; display: block;
+}
+
+.input-row { display: flex; gap: 10px; }
+
+.url-input {
+  flex: 1;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 18px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; color: var(--accent2);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  caret-color: var(--accent);
+}
+.url-input::placeholder { color: var(--text3); }
+.url-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(99,179,237,0.1);
+}
+
+.analyze-btn {
+  background: var(--accent);
+  color: var(--bg); border: none; border-radius: 10px;
+  padding: 14px 28px;
+  font-family: 'Syne', sans-serif;
+  font-size: 13px; font-weight: 700;
+  cursor: pointer; white-space: nowrap;
+  transition: all 0.2s;
+  display: flex; align-items: center; gap-8px;
+}
+.analyze-btn:hover {
+  background: var(--accent2);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(99,179,237,0.3);
+}
+.analyze-btn:active { transform: translateY(0); }
+.analyze-btn:disabled {
+  opacity: 0.5; cursor: not-allowed; transform: none;
+}
+
+/* Quick tests */
+.quick-tests {
+  display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap;
+  align-items: center;
+}
+.quick-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--text3);
+}
+.quick-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; padding: 4px 12px;
+  border-radius: 20px; border: 1px solid;
+  cursor: pointer; background: transparent;
+  transition: all 0.15s;
+}
+.quick-btn.safe   { color: var(--green);  border-color: rgba(52,211,153,0.3); }
+.quick-btn.warn   { color: var(--yellow); border-color: rgba(251,191,36,0.3); }
+.quick-btn.danger { color: var(--red);    border-color: rgba(248,113,113,0.3); }
+.quick-btn:hover  { opacity: 0.8; transform: translateY(-1px); }
+
+/* ── Result section ── */
+#result-section { margin-top: 28px; display: none; }
+#result-section.show { display: block; animation: fadeUp 0.4s ease both; }
+
+/* Verdict banner */
+.verdict-banner {
+  border-radius: 12px; padding: 24px 28px;
+  display: flex; align-items: center; gap: 16px;
+  margin-bottom: 16px;
+  border: 1px solid;
+  position: relative; overflow: hidden;
+}
+.verdict-banner::after {
+  content: '';
+  position: absolute; right: -20px; top: -20px;
+  width: 120px; height: 120px; border-radius: 50%;
+  opacity: 0.06;
+}
+.verdict-banner.safe   { background: rgba(52,211,153,0.06); border-color: rgba(52,211,153,0.25); }
+.verdict-banner.safe .verdict-icon { color: var(--green); }
+.verdict-banner.safe::after { background: var(--green); }
+.verdict-banner.warning { background: rgba(251,191,36,0.06); border-color: rgba(251,191,36,0.25); }
+.verdict-banner.warning .verdict-icon { color: var(--yellow); }
+.verdict-banner.warning::after { background: var(--yellow); }
+.verdict-banner.danger { background: rgba(248,113,113,0.06); border-color: rgba(248,113,113,0.25); }
+.verdict-banner.danger .verdict-icon { color: var(--red); }
+.verdict-banner.danger::after { background: var(--red); }
+
+.verdict-icon { font-size: 36px; flex-shrink: 0; }
+.verdict-title {
+  font-size: 22px; font-weight: 800; letter-spacing: -0.01em;
+}
+.verdict-url {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--text2); margin-top: 3px;
+  word-break: break-all;
+}
+
+/* Score bar */
+.score-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 20px 24px; margin-bottom: 16px;
+}
+.score-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 12px;
+}
+.score-label-txt {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--text3); text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.score-num {
+  font-family: 'Space Mono', monospace;
+  font-size: 22px; font-weight: 700;
+}
+.score-track {
+  height: 6px; background: var(--bg3);
+  border-radius: 3px; overflow: hidden;
+}
+.score-fill {
+  height: 100%; border-radius: 3px;
+  transition: width 1s cubic-bezier(0.16,1,0.3,1);
+}
+.score-ticks {
+  display: flex; justify-content: space-between;
+  margin-top: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; color: var(--text3);
+}
+
+/* Findings grid */
+.findings-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 12px;
+}
+.findings-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--text3);
+  letter-spacing: 0.15em; text-transform: uppercase;
+}
+.findings-counts { display: flex; gap: 12px; }
+.count-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; padding: 2px 10px; border-radius: 20px;
+}
+.count-badge.danger { background: rgba(248,113,113,0.1); color: var(--red); }
+.count-badge.warn   { background: rgba(251,191,36,0.1);  color: var(--yellow); }
+.count-badge.safe   { background: rgba(52,211,153,0.1);  color: var(--green); }
+
+.findings-list { display: flex; flex-direction: column; gap: 8px; }
+
+.finding-card {
+  background: var(--bg2); border-radius: 10px;
+  padding: 16px 20px;
+  border-left: 3px solid;
+  display: flex; gap: 14px; align-items: flex-start;
+  animation: slideIn 0.3s ease both;
+  border-top: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.finding-card.danger { border-left-color: var(--red); }
+.finding-card.warning { border-left-color: var(--yellow); }
+.finding-card.safe   { border-left-color: var(--green); }
+
+.finding-icon {
+  width: 28px; height: 28px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; flex-shrink: 0; margin-top: 1px;
+}
+.finding-card.danger  .finding-icon { background: rgba(248,113,113,0.12); color: var(--red); }
+.finding-card.warning .finding-icon { background: rgba(251,191,36,0.12);  color: var(--yellow); }
+.finding-card.safe    .finding-icon { background: rgba(52,211,153,0.12);  color: var(--green); }
+
+.finding-body { flex: 1; }
+.finding-title {
+  font-size: 13px; font-weight: 600; margin-bottom: 4px;
+}
+.finding-card.danger  .finding-title { color: #fca5a5; }
+.finding-card.warning .finding-title { color: #fcd34d; }
+.finding-card.safe    .finding-title { color: #6ee7b7; }
+.finding-detail {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--text2); line-height: 1.6;
+}
+
+/* URL breakdown */
+.breakdown-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 20px 24px; margin-top: 16px;
+}
+.breakdown-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--text3);
+  letter-spacing: 0.15em; text-transform: uppercase;
+  margin-bottom: 14px;
+}
+.breakdown-row {
+  display: flex; gap: 16px; margin-bottom: 8px;
+  align-items: baseline;
+}
+.breakdown-key {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--accent);
+  width: 80px; flex-shrink: 0;
+}
+.breakdown-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; color: var(--text);
+  word-break: break-all;
+}
+
+/* ── Features section ── */
+.features { margin-top: 72px; animation: fadeUp 0.5s ease 0.5s both; }
+.section-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--accent);
+  letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 8px;
+}
+.section-title {
+  font-size: 28px; font-weight: 800; letter-spacing: -0.01em;
+  margin-bottom: 32px;
+}
+.features-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+.feature-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 20px;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.feature-card:hover {
+  border-color: var(--border2);
+  transform: translateY(-2px);
+}
+.feature-icon {
+  width: 36px; height: 36px; border-radius: 8px;
+  background: rgba(99,179,237,0.08);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; margin-bottom: 12px;
+  border: 1px solid var(--border);
+}
+.feature-name {
+  font-size: 13px; font-weight: 600; margin-bottom: 4px;
+}
+.feature-desc { font-size: 11px; color: var(--text2); line-height: 1.6; }
+
+/* ── Footer ── */
+footer {
+  margin-top: 80px; padding: 28px 0;
+  border-top: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 12px;
+}
+.footer-left {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--text3);
+}
+.footer-left a { color: var(--accent); text-decoration: none; }
+.footer-left a:hover { text-decoration: underline; }
+.footer-right {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--text3);
+}
+
+/* ── Scanning animation ── */
+.scanning {
+  display: none; align-items: center; gap: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; color: var(--accent);
+  margin-top: 14px;
+}
+.scanning.active { display: flex; }
+.scan-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); animation: pulse 1s ease-in-out infinite;
+}
+.scan-dot:nth-child(2) { animation-delay: 0.15s; }
+.scan-dot:nth-child(3) { animation-delay: 0.3s; }
+
+/* ── Keyframes ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50%       { opacity: 1;   transform: scale(1.2); }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Loader ── */
+.btn-spinner {
+  width: 14px; height: 14px;
+  border: 2px solid rgba(8,11,18,0.3);
+  border-top-color: var(--bg);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: none;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<div class="wrap">
+
+  <!-- Nav -->
+  <nav>
+    <div class="nav-logo">
+      <div class="logo-shield">🛡</div>
+      CyberShield
+    </div>
+    <div class="nav-badge">v1.0 · by Jhanvi Jyant</div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-eyebrow">
+      <span>Real-time Security Analysis</span>
+    </div>
+    <h1>Is That URL<br/><span>Safe To Visit?</span></h1>
+    <p class="hero-sub">
+      Paste any URL and get an instant security report —
+      phishing detection, SSL check, domain analysis and more.
+    </p>
+  </section>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat">
+      <span class="stat-num">10+</span>
+      <span class="stat-label">Security Checks</span>
+    </div>
+    <div class="stat">
+      <span class="stat-num">&lt;1s</span>
+      <span class="stat-label">Analysis Time</span>
+    </div>
+    <div class="stat">
+      <span class="stat-num">30+</span>
+      <span class="stat-label">Phishing Keywords</span>
+    </div>
+    <div class="stat">
+      <span class="stat-num">100%</span>
+      <span class="stat-label">Free & Private</span>
+    </div>
+  </div>
+
+  <!-- Input Card -->
+  <div class="input-card">
+    <label class="input-label">// enter url to analyze</label>
+    <div class="input-row">
+      <input type="text" class="url-input" id="urlInput"
+             placeholder="https://example.com or paste any suspicious link..."
+             autocomplete="off" spellcheck="false"/>
+      <button class="analyze-btn" id="analyzeBtn" onclick="analyze()">
+        <span class="btn-spinner" id="spinner"></span>
+        <span id="btnText">Analyze →</span>
+      </button>
+    </div>
+    <div class="quick-tests">
+      <span class="quick-label">Try:</span>
+      <button class="quick-btn safe"
+        onclick="quickTest('github.com')">✓ github.com</button>
+      <button class="quick-btn warn"
+        onclick="quickTest('bit.ly/free-iphone-winner-2024')">⚠ URL Shortener</button>
+      <button class="quick-btn danger"
+        onclick="quickTest('http://paypa1.com.login.verify-account.xyz/signin?redirect=steal')">✗ Phishing</button>
+      <button class="quick-btn danger"
+        onclick="quickTest('http://192.168.1.1/account/password/confirm')">✗ IP Attack</button>
+    </div>
+    <div class="scanning" id="scanning">
+      <div class="scan-dot"></div>
+      <div class="scan-dot"></div>
+      <div class="scan-dot"></div>
+      <span id="scanText">Running security checks...</span>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div id="result-section">
+    <div class="verdict-banner" id="verdictBanner">
+      <div class="verdict-icon" id="verdictIcon"></div>
+      <div>
+        <div class="verdict-title" id="verdictTitle"></div>
+        <div class="verdict-url" id="verdictUrl"></div>
+      </div>
+    </div>
+
+    <div class="score-card">
+      <div class="score-header">
+        <span class="score-label-txt">Risk Score</span>
+        <span class="score-num" id="scoreNum">0<span style="font-size:14px;color:var(--text3)">/100</span></span>
+      </div>
+      <div class="score-track">
+        <div class="score-fill" id="scoreFill" style="width:0%"></div>
+      </div>
+      <div class="score-ticks">
+        <span>Safe</span><span>Low Risk</span><span>Suspicious</span><span>Dangerous</span>
+      </div>
+    </div>
+
+    <div class="findings-header">
+      <span class="findings-title">// detailed findings</span>
+      <div class="findings-counts" id="findingsCounts"></div>
+    </div>
+    <div class="findings-list" id="findingsList"></div>
+
+    <div class="breakdown-card">
+      <div class="breakdown-title">// url breakdown</div>
+      <div id="breakdownContent"></div>
+    </div>
+  </div>
+
+  <!-- Features -->
+  <section class="features">
+    <div class="section-eyebrow">// what we check</div>
+    <div class="section-title">10+ Security Checks</div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <div class="feature-name">SSL / HTTPS</div>
+        <div class="feature-desc">Verifies if connection is encrypted. Unencrypted sites put your data at risk.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎯</div>
+        <div class="feature-name">Phishing Detection</div>
+        <div class="feature-desc">Scans 30+ keywords commonly used in phishing attacks targeting banks and accounts.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🌐</div>
+        <div class="feature-name">IP Address Attack</div>
+        <div class="feature-desc">Detects when raw IP addresses are used instead of domains — a major red flag.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔤</div>
+        <div class="feature-name">Homograph Attack</div>
+        <div class="feature-desc">Catches visual spoofing like paypa1.com impersonating paypal.com.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📦</div>
+        <div class="feature-name">URL Shorteners</div>
+        <div class="feature-desc">Flags shortened URLs that hide the real destination behind them.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🏷</div>
+        <div class="feature-name">Suspicious TLDs</div>
+        <div class="feature-desc">Checks for risky domain extensions like .xyz, .tk, .ml frequently used in attacks.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔀</div>
+        <div class="feature-name">Open Redirects</div>
+        <div class="feature-desc">Detects redirect parameters that can send you to a malicious site post-login.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔗</div>
+        <div class="feature-name">Subdomain Abuse</div>
+        <div class="feature-desc">Spots tricks like paypal.com.evil.xyz that look legitimate at first glance.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-left">
+      Built by <a href="https://github.com/jhanvijyant" target="_blank">Jhanvi Jyant</a>
+      · Cybersecurity &amp; Digital Forensics Student
+      · <a href="https://github.com/jhanvijyant" target="_blank">GitHub</a>
+      · <a href="https://linkedin.com/in/jhanvi-jyant-26934b291" target="_blank">LinkedIn</a>
+    </div>
+    <div class="footer-right">CyberShield v1.0 · 2025</div>
+  </footer>
+
+</div>
+
+<script>
+// ── Cursor ──────────────────────────────────────────────────────────────────
+const cursor = document.getElementById('cursor');
+const ring   = document.getElementById('cursorRing');
+let mx = 0, my = 0, rx = 0, ry = 0;
+document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+(function animCursor() {
+  rx += (mx - rx) * 0.12; ry += (my - ry) * 0.12;
+  cursor.style.left = mx + 'px'; cursor.style.top = my + 'px';
+  ring.style.left   = rx + 'px'; ring.style.top  = ry + 'px';
+  requestAnimationFrame(animCursor);
+})();
+document.querySelectorAll('button, a, input').forEach(el => {
+  el.addEventListener('mouseenter', () => ring.style.transform = 'translate(-50%,-50%) scale(1.5)');
+  el.addEventListener('mouseleave', () => ring.style.transform = 'translate(-50%,-50%) scale(1)');
+});
+
+// ── Enter key ───────────────────────────────────────────────────────────────
+document.getElementById('urlInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') analyze();
+});
+
+function quickTest(url) {
+  document.getElementById('urlInput').value = url;
+  analyze();
+}
+
+// ── Analyzer Logic ───────────────────────────────────────────────────────────
+const PHISHING_KEYWORDS = [
+  "login","signin","verify","account","update","secure","banking",
+  "paypal","amazon","google","microsoft","apple","netflix","confirm",
+  "password","credential","wallet","crypto","urgent","suspended",
+  "limited","unusual","activity","click","free","winner","prize",
+  "ebay","instagram","facebook","support","helpdesk"
+];
+const SUSPICIOUS_TLDS = [".xyz",".top",".click",".loan",".work",".gq",
+  ".ml",".cf",".tk",".ga",".pw",".cc",".su",".info",".biz"];
+const SAFE_DOMAINS = ["google.com","github.com","microsoft.com","apple.com",
+  "amazon.com","youtube.com","wikipedia.org","stackoverflow.com",
+  "linkedin.com","twitter.com","instagram.com","facebook.com",
+  "reddit.com","netflix.com","spotify.com","dropbox.com"];
+const URL_SHORTENERS = ["bit.ly","tinyurl.com","t.co","goo.gl",
+  "ow.ly","short.io","rebrand.ly","cutt.ly","tiny.cc","is.gd"];
+
+function analyzeURL(rawUrl) {
+  let url = rawUrl.trim();
+  if (!url.startsWith('http://') && !url.startsWith('https://'))
+    url = 'https://' + url;
+
+  let parsed;
+  try { parsed = new URL(url); }
+  catch { return null; }
+
+  let score = 0;
+  const findings = [];
+
+  const add = (type, icon, title, detail) =>
+    findings.push({ type, icon, title, detail });
+
+  // HTTPS
+  if (parsed.protocol === 'http:') {
+    score += 20;
+    add('danger','🔓','No HTTPS Encryption',
+      'Connection is NOT encrypted. Avoid entering passwords or personal data here.');
+  } else {
+    add('safe','🔒','HTTPS Encryption Active','Connection is encrypted — good sign.');
+  }
+
+  // IP address
+  if (/^\d{1,3}(\.\d{1,3}){3}(:\d+)?$/.test(parsed.hostname)) {
+    score += 45;
+    add('danger','⚠','Raw IP Address Used',
+      `"${parsed.hostname}" is a raw IP. Legitimate sites almost never use raw IPs directly. Very high risk.`);
+  }
+
+  // Domain length
+  if (parsed.hostname.length > 40) {
+    score += 15;
+    add('warning','📏','Unusually Long Domain',
+      `Domain is ${parsed.hostname.length} characters long. Phishing sites use long confusing domains to trick users.`);
+  }
+
+  // Subdomain abuse
+  const parts = parsed.hostname.split('.');
+  if (parts.length > 4) {
+    score += 25;
+    add('danger','🔗','Excessive Subdomains',
+      `"${parsed.hostname}" has ${parts.length - 2} subdomains. Classic phishing trick: paypal.com.login.verify.evil.xyz`);
+  }
+
+  // Special chars
+  ['@','//','..'].forEach(ch => {
+    if (parsed.hostname.includes(ch)) {
+      score += 25;
+      add('danger','⚡',`Suspicious Character "${ch}" in Domain`,
+        'Special characters in domains can silently redirect to a completely different server.');
+    }
+  });
+
+  // Phishing keywords
+  const lower = url.toLowerCase();
+  const found = PHISHING_KEYWORDS.filter(k => lower.includes(k));
+  if (found.length >= 3) {
+    score += 30;
+    add('danger','🎣',`${found.length} Phishing Keywords Detected`,
+      `Keywords found: ${found.slice(0,6).join(', ')}. This combination is extremely common in phishing attacks.`);
+  } else if (found.length > 0) {
+    score += 10;
+    add('warning','🔎',`${found.length} Suspicious Keyword${found.length>1?'s':''} Found`,
+      `Keywords: ${found.join(', ')}. Could be legitimate but treat with caution.`);
+  }
+
+  // Suspicious TLD
+  const domLower = parsed.hostname.toLowerCase();
+  const badTld = SUSPICIOUS_TLDS.find(t => domLower.endsWith(t));
+  if (badTld) {
+    score += 20;
+    add('warning','🏷',`Suspicious Extension: ${badTld}`,
+      `"${badTld}" extensions are frequently used in malicious websites due to low cost and weak regulation.`);
+  }
+
+  // Safe domain
+  const cleanDomain = domLower.replace(/^www\./, '');
+  if (SAFE_DOMAINS.includes(cleanDomain)) {
+    score = Math.max(0, score - 25);
+    add('safe','✅','Trusted Domain Recognized',
+      `"${cleanDomain}" is a well-known legitimate website.`);
+  }
+
+  // URL shortener
+  const shortener = URL_SHORTENERS.find(s => domLower.includes(s));
+  if (shortener) {
+    score += 15;
+    add('warning','📦',`URL Shortener: ${shortener}`,
+      'Shortened URLs hide the real destination. Cannot verify safety without following the link.');
+  }
+
+  // Homograph
+  const homographs = {'0':'o','1':'l','rn':'m','vv':'w'};
+  for (const [fake, real] of Object.entries(homographs)) {
+    if (domLower.includes(fake) && !domLower.replace(new RegExp(fake,'g'), real).includes(real)) {
+      score += 35;
+      add('danger','👁','Homograph Attack Detected',
+        `"${fake}" found — could be impersonating "${real}". Classic visual spoofing trick.`);
+    }
+  }
+
+  // Open redirect
+  const dangerParams = ['redirect','url=','link=','goto=','next=','return='];
+  const queryLower = parsed.search.toLowerCase();
+  const param = dangerParams.find(p => queryLower.includes(p));
+  if (param) {
+    score += 15;
+    add('warning','🔀',`Open Redirect Parameter: "${param}"`,
+      'This parameter can redirect you to a malicious site after login.');
+  }
+
+  // Verdict
+  let verdict, cls;
+  if      (score === 0)  { verdict = 'SAFE';                 cls = 'safe';    }
+  else if (score < 20)   { verdict = 'PROBABLY SAFE';        cls = 'safe';    }
+  else if (score < 40)   { verdict = 'SUSPICIOUS';           cls = 'warning'; }
+  else if (score < 65)   { verdict = 'LIKELY DANGEROUS';     cls = 'danger';  }
+  else                   { verdict = 'DANGEROUS — AVOID';    cls = 'danger';  }
+
+  return { score, findings, verdict, cls, parsed, url };
+}
+
+// ── UI ───────────────────────────────────────────────────────────────────────
+const SCAN_STEPS = [
+  'Checking SSL certificate...','Analyzing domain structure...',
+  'Scanning for phishing keywords...','Checking TLD reputation...',
+  'Detecting homograph attacks...','Verifying against safe domain list...',
+  'Analyzing URL parameters...','Generating security report...'
+];
+
+async function animate(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+async function analyze() {
+  const input = document.getElementById('urlInput');
+  const url = input.value.trim();
+  if (!url) { input.focus(); return; }
+
+  const btn     = document.getElementById('analyzeBtn');
+  const spinner = document.getElementById('spinner');
+  const btnText = document.getElementById('btnText');
+  const scanning = document.getElementById('scanning');
+  const scanText = document.getElementById('scanText');
+  const result  = document.getElementById('result-section');
+
+  btn.disabled = true;
+  spinner.style.display = 'block';
+  btnText.textContent = 'Scanning...';
+  scanning.classList.add('active');
+  result.classList.remove('show');
+
+  for (let i = 0; i < SCAN_STEPS.length; i++) {
+    scanText.textContent = SCAN_STEPS[i];
+    await animate(150);
+  }
+
+  const res = analyzeURL(url);
+
+  btn.disabled = false;
+  spinner.style.display = 'none';
+  btnText.textContent = 'Analyze →';
+  scanning.classList.remove('active');
+
+  if (!res) {
+    scanText.textContent = 'Invalid URL — please check and try again.';
+    scanning.classList.add('active');
+    scanning.style.color = 'var(--red)';
+    setTimeout(() => {
+      scanning.classList.remove('active');
+      scanning.style.color = '';
+    }, 2500);
+    return;
+  }
+
+  renderResult(res);
+}
+
+function renderResult(res) {
+  const { score, findings, verdict, cls, parsed, url } = res;
+
+  // Verdict banner
+  const banner = document.getElementById('verdictBanner');
+  banner.className = `verdict-banner ${cls}`;
+  const icons = { safe: '🛡', warning: '⚠️', danger: '🚨' };
+  document.getElementById('verdictIcon').textContent = icons[cls];
+  document.getElementById('verdictTitle').textContent = verdict;
+  document.getElementById('verdictUrl').textContent = url.length > 80 ? url.slice(0,80)+'...' : url;
+
+  // Score
+  const capped = Math.min(score, 100);
+  document.getElementById('scoreNum').innerHTML =
+    `${score}<span style="font-size:14px;color:var(--text3)">/100</span>`;
+  const fill = document.getElementById('scoreFill');
+  fill.style.width = '0%';
+  const scoreColor = capped < 20 ? 'var(--green)' : capped < 50 ? 'var(--yellow)' : 'var(--red)';
+  fill.style.background = scoreColor;
+  document.getElementById('scoreNum').style.color = scoreColor;
+  setTimeout(() => { fill.style.width = capped + '%'; }, 50);
+
+  // Counts
+  const danger  = findings.filter(f => f.type === 'danger').length;
+  const warning = findings.filter(f => f.type === 'warning').length;
+  const safe    = findings.filter(f => f.type === 'safe').length;
+  document.getElementById('findingsCounts').innerHTML = `
+    ${danger  ? `<span class="count-badge danger">${danger} critical</span>` : ''}
+    ${warning ? `<span class="count-badge warn">${warning} warnings</span>` : ''}
+    ${safe    ? `<span class="count-badge safe">${safe} safe</span>` : ''}
+  `;
+
+  // Findings — danger first
+  const ordered = [
+    ...findings.filter(f => f.type === 'danger'),
+    ...findings.filter(f => f.type === 'warning'),
+    ...findings.filter(f => f.type === 'safe'),
+  ];
+  const list = document.getElementById('findingsList');
+  list.innerHTML = '';
+  ordered.forEach((f, i) => {
+    const card = document.createElement('div');
+    card.className = `finding-card ${f.type}`;
+    card.style.animationDelay = (i * 0.06) + 's';
+    card.innerHTML = `
+      <div class="finding-icon">${f.icon}</div>
+      <div class="finding-body">
+        <div class="finding-title">${f.title}</div>
+        <div class="finding-detail">${f.detail}</div>
+      </div>`;
+    list.appendChild(card);
+  });
+
+  // Breakdown
+  const breakdown = [
+    ['protocol', parsed.protocol.replace(':','').toUpperCase()],
+    ['domain',   parsed.hostname],
+    ['path',     parsed.pathname || '/'],
+    ['query',    parsed.search ? parsed.search.slice(0,80)+(parsed.search.length>80?'...':'') : 'none'],
+    ['port',     parsed.port || 'default'],
+  ];
+  document.getElementById('breakdownContent').innerHTML = breakdown.map(([k,v]) => `
+    <div class="breakdown-row">
+      <span class="breakdown-key">${k}</span>
+      <span class="breakdown-val">${v}</span>
+    </div>`).join('');
+
+  // Show
+  const section = document.getElementById('result-section');
+  section.classList.add('show');
+  setTimeout(() => section.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+}
+</script>
+</body>
+</html>
