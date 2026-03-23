@@ -30,6 +30,5 @@ Interactive cybersecurity web interface designed to simulate real-time analysis 
 
 
 BY-jhanvi jyant 
-
-Your Name
-GitHub: https://github.com/your-username
+GitHub: https://github.com/jhanvijyant
+LinkedIn:www.linkedin.com/in/jhanvi-jyant-26934b291
