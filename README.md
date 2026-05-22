@@ -1,20 +1,20 @@
 # cybersheild-url-safety-analyzer
-Interactive cybersecurity web interface designed to simulate real-time analysis with modern UI/UX elements.
+An interactive cybersecurity dashboard prototype designed to visualize website risk analysis workflows and scanning behavior using dynamic UI components.
 
 # Cybersecurity UI Scanner is an interactive cybersecurity web interface designed to simulate real-time analysis with modern UI/UX elements.
 
- 🚀 Features
+  Features
 
-* 🖤 Dark cybersecurity theme with grid background
-* 🖱️ Custom cursor that follows mouse movement
-* 📡 Animated scanning steps during analysis
-* 🎯 Color-coded findings (High / Medium / Low)
-* 📊 Dynamic animated risk score bar
-* 🔍 URL breakdown section
-* ⚡ 4 quick test buttons for instant actions
-* ✨ Smooth hover animations
+*  Dark cybersecurity theme with grid background
+* Custom cursor that follows mouse movement
+* Animated scanning steps during analysis
+*  Color-coded findings (High / Medium / Low)
+*  Dynamic animated risk score bar
+*  URL breakdown section
+*  4 quick test buttons for instant actions
+*  Smooth hover animations
 
- 🛠️ Tech Stack
+ Tech Stack
 
 * HTML
 * CSS (Animations + Grid UI)
@@ -29,6 +29,6 @@ Interactive cybersecurity web interface designed to simulate real-time analysis 
 
 
 
-BY-jhanvi jyant 
+jhanvi jyant 
 GitHub: https://github.com/jhanvijyant
 LinkedIn:www.linkedin.com/in/jhanvi-jyant-26934b291
