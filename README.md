@@ -21,16 +21,16 @@ An interactive cybersecurity dashboard prototype designed to visualize website r
 * JavaScript (DOM + Interactions)
 
 
-work flow:
-Input URL
+## workflow:
+#Input URL
 ↓
-Trigger scan animation
+#Trigger scan animation
 ↓
-Analyze indicators
+#Analyze indicators
 ↓
-Generate findings
+#Generate findings
 ↓
-Display risk score
+#Display risk score
 
 
 ## 📸 Preview
